@@ -22,19 +22,19 @@ ReflectAI is a production-quality, privacy-first AI journaling and reflection we
 
 ### 1. System Architecture Diagram
 
-
+```mermaid
 graph TD
     subgraph Client ["Client Layer (Browser / React SPA)"]
         UI[ReflectAI UI & Pages]
         AuthCtx[Auth Context & State]
-        ThemeCtx[Theme Context (Light/Dark/System)]
-        StorageSvc[Storage Service (Firestore + Local Cache)]
+        ThemeCtx[Theme Context: Light / Dark / System]
+        StorageSvc[Storage Service: Firestore + Local Cache]
         GeminiClient[Gemini Client / SSE Consumer]
     end
 
     subgraph Backend ["Backend Proxy Layer (Express / Node.js on Port 3000)"]
         Server[Express Server (server.ts)]
-        BodyGuard[Payload Deserialization & Validation]
+        BodyGuard[Payload Deserialization & Null-Safe Guard]
         GeminiProxy[Gemini AI Handler & Fallback Ladder]
     end
 
@@ -50,7 +50,7 @@ graph TD
     UI --> GeminiClient
 
     AuthCtx -->|Popup / Redirect Token| FirebaseAuth
-    StorageSvc -->|SDK Direct Direct Read/Write with Rules| FirestoreDB
+    StorageSvc -->|Direct Read/Write with Rules| FirestoreDB
 
     GeminiClient -->|POST /api/gemini/reflect| Server
     GeminiClient -->|POST SSE /api/gemini/chat| Server
@@ -67,7 +67,7 @@ graph TD
 
 ### 2. Multi-Turn Streaming AI Chat Flow
 
-
+```mermaid
 sequenceDiagram
     autonumber
     actor User as User (Browser)
@@ -89,7 +89,7 @@ sequenceDiagram
     end
 
     Server-->>Client: SSE Event data: {"text": "chunk"}
-    Client->>Client: Streams words in real-time to UI
+    Client->>Client: Streams formatted cards/text in real-time to UI
     Server-->>Client: SSE Event data: [DONE]
     Client->>Client: Auto-saves completed conversation to user's Firestore thread
 ```
@@ -106,7 +106,35 @@ flowchart LR
     C -- No / Guest --> E[Local Storage Cache: reflect_ai_guest_entries]
     D --> F[Firestore Security Rules Verification: request.auth.uid == userId]
     F -- Approved --> G[Persisted to Cloud DB & Cache Synchronized]
-    F -- Denied --> H[Raise Error Banner with Retry Option]
+    F -- Denied --> H[Raise Error Toast with In-App Feedback]
+```
+
+---
+
+### 4. Goal & Action Item Extraction Pipeline
+
+```mermaid
+flowchart TD
+    E[Journal Reflection Entry] -->|Click 'Create Action Plan'| S[POST /api/gemini/reflect (mode: action_plan)]
+    S --> G[Gemini GenAI Analysis & SMART Task Breakdown]
+    G --> R[Formatted UI Card + Machine JSON Payload]
+    R --> V[User Reviews Extracted Goals & Tasks]
+    V -->|Click 'Save as Goal'| F[Persist to Firestore: /users/{userId}/goals/{goalId}]
+    F --> C[Interactive Progress Checklist in Goals View]
+```
+
+---
+
+### 5. Weekly & Monthly Synthesis Flow
+
+```mermaid
+flowchart TD
+    H[User's Past Reflections & Mood History] -->|Trigger Synthesis| I[POST /api/gemini/insights]
+    I --> P[Express Server Aggregates Entry Titles, Dates, & Moods]
+    P --> M[Gemini 4-Tier Fallback Analysis]
+    M --> J[Structured Output: Summary, Themes, Blind Spots, Growth Actions]
+    J --> D[Persist to Firestore: /users/{userId}/insights/{insightId}]
+    D --> U[Render Interactive Radar, Theme Badges, & Action Cards]
 ```
 
 ---
@@ -184,6 +212,8 @@ flowchart LR
 │   │   ├── storageService.ts     # Firestore CRUD, local guest storage, and undefined-stripping sanitizers
 │   │   └── geminiService.ts      # Client-side API caller for backend Express Gemini endpoints
 │   ├── components/
+│   │   ├── ConfirmModal.tsx      # Accessible, styled in-app confirmation modal (replaces iframe window.confirm)
+│   │   ├── GeminiResponseRenderer.tsx # Card-based renderer formatting Markdown & Action Plans into clean UI
 │   │   ├── layout/
 │   │   │   ├── Navbar.tsx        # Top navigation bar, search trigger, theme switcher, and profile
 │   │   │   └── Sidebar.tsx       # Collapsible desktop/mobile sidebar navigation
@@ -255,91 +285,91 @@ http://localhost:3000
 
 ## 🧪 How to Test Locally
 
-### 1. Automated Code Quality & Build Checks
-Verify TypeScript types, linting rules, and production bundle generation:
-
+### 1. Automated Code Quality & Build Verification
+Run TypeScript type-checking and linter:
 ```bash
-# Run TypeScript compilation and linter
 npm run lint
+```
+*Expected Result:* `Linting completed successfully` with zero errors.
 
-# Run full production build
+Run the production build bundle:
+```bash
 npm run build
 ```
+*Expected Result:* Produces optimized static assets in `dist/` and backend bundle in `dist/server.cjs`.
 
 ---
 
-### 2. Manual Testing of Backend API Endpoints (cURL)
+### 2. Backend Endpoint Validation (CLI / cURL)
 
 #### A. Health Check Endpoint
 ```bash
 curl -X GET http://localhost:3000/api/health
 ```
-*Expected Output:* `{"status":"ok","timestamp":"..."}`
+*Expected Output:*
+```json
+{"status":"ok","timestamp":"2026-08-29T..."}
+```
 
-#### B. Generate Daily Reflection Prompt
+#### B. Generate Dynamic Daily Prompt
 ```bash
 curl -X POST http://localhost:3000/api/gemini/prompt \
   -H "Content-Type: application/json" \
-  -d '{"recentThemes": ["productivity", "mindfulness"]}'
+  -d '{"recentThemes": ["resilience", "deep work"]}'
 ```
-*Expected Output:* `{"prompt":"..."}`
+*Expected Output:*
+```json
+{"prompt":"What was a moment today where you chose depth over distraction?"}
+```
 
-#### C. In-Editor Reflection Analysis
+#### C. In-Editor Reflection Feedback
 ```bash
 curl -X POST http://localhost:3000/api/gemini/reflect \
   -H "Content-Type: application/json" \
   -d '{
     "mode": "reflect",
     "entry": {
-      "title": "Evening Thoughts",
-      "content": "I felt overwhelmed by meetings today but found 20 minutes to walk in the park."
+      "title": "Evening Review",
+      "content": "I felt overwhelmed by back-to-back meetings today but found 15 minutes of calm during my afternoon walk."
     }
   }'
 ```
-*Expected Output:* JSON containing an empathetic reflection message.
+*Expected Output:*
+```json
+{"result":"It takes immense self-awareness to notice when meetings deplete your focus..."}
+```
 
-#### D. Multi-Turn Streaming Chat (SSE)
+#### D. Multi-Turn Streaming Chat (SSE Stream)
 ```bash
 curl -N -X POST http://localhost:3000/api/gemini/chat \
   -H "Content-Type: application/json" \
   -d '{
     "mode": "coach",
     "messages": [
-      {"role": "user", "content": "How can I maintain focus when switching between tasks?"}
+      {"role": "user", "content": "How can I maintain focus when context switching between tasks?"}
     ]
   }'
 ```
-*Expected Output:* Server-Sent Events stream with `data: {"text":"..."}` chunks ending in `data: [DONE]`.
+*Expected Output:* A continuous stream of Server-Sent Events ending with `data: [DONE]`.
 
 ---
 
-### 3. Step-by-Step UI Functionality Walkthrough (Browser)
+### 3. Comprehensive End-to-End Browser Walkthrough
 
-1. **Authentication Testing**:
-   - Navigate to `http://localhost:3000`.
-   - Click **"Explore Guest Space"** to immediately test without credentials (uses isolated browser storage).
-   - Click **"Continue with Google"** to test live Firebase Google OAuth popups.
-2. **Journal Editor & Auto-Save**:
-   - Navigate to **Write Reflection** (`/journal_new`).
-   - Type a title and content. Verify the badge changes from `Saving...` to `Saved` after you stop typing.
-   - Add tags (e.g. `#clarity`, `#growth`) and select an emotional mood chip.
-   - Click **"Reflect"** in the AI panel to generate feedback.
-   - Click **"Create Action Plan"**, review the generated subtasks, and click **"Save as Goal"**.
-3. **Multi-Turn AI Conversations**:
-   - Navigate to **AI Dialogue**.
-   - Switch modes between *Coach*, *Brainstorm*, and *Challenge Me*.
-   - Send a message and verify text streams into the chat window.
-   - Test the **"Regenerate"** button on the latest response.
-4. **Goals & Milestones**:
-   - Navigate to **Goals & Action Items**.
-   - Check off individual milestone tasks and observe the progress bar update.
-   - Check off all tasks and verify the goal transitions to `Completed`.
-5. **Theme Switching**:
-   - Click the theme toggle icon in the top navbar or visit **Settings**.
-   - Verify that switching between Light, Dark, and System Match themes changes background and text contrast across all views smoothly.
-6. **Data Portability**:
-   - Go to **Settings** &rarr; **Data Portability**.
-   - Click **Download All JSON** and **Download All Markdown** and verify downloaded files contain all reflection records.
+| Step | Area / Feature | Action | Verification |
+| :--- | :--- | :--- | :--- |
+| **1** | **Authentication** | Click **"Explore Guest Space"** | Lands on Dashboard with seeded demo data in local storage. |
+| **2** | **Google Login** | Click **"Continue with Google"** | Authenticates with Firebase Auth and redirects with user avatar. |
+| **3** | **Write Reflection** | Navigate to **Write Reflection**, type title and reflection body | Header badge shows `Saving...` debounced & transitions to `Saved`. |
+| **4** | **AI Reflection Action** | In editor, click **"Reflect"** or **"Brainstorm"** | Renders structured card with insightful feedback and questions. |
+| **5** | **Goal Extraction** | In editor, click **"Create Action Plan"** then **"Save as Goal"** | Converts reflection milestones into an active checklist in Goals view. |
+| **6** | **Streaming Chat** | Navigate to **Talk to Gemini**, send a message | Responses stream in real-time as structured cards; copy button works. |
+| **7** | **Delete Modal** | In **Talk to Gemini**, click the trash icon next to a thread | Confirmation modal appears; confirming permanently deletes thread. |
+| **8** | **History & Search** | Go to **Reflections History**, enter a tag or keyword search | Filters entries instantly; bulk-selection and archive work smoothly. |
+| **9** | **Insights & Review** | Go to **Periodic Insights**, click **"Generate Weekly Review"** | Aggregates reflections into structured themes, blind spots, and takeaways. |
+| **10** | **Calendar View** | Go to **Calendar**, click any highlighted date cell | Expands reflection summaries written on that day. |
+| **11** | **Theme Switching** | Click theme button (Light / Dark / System) | Seamlessly switches high-contrast light and warm-neutral dark theme. |
+| **12** | **Data Portability** | Go to **Settings** &rarr; **Data Portability** | Downloads JSON and Markdown export files containing all records. |
 
 ---
 
