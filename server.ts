@@ -78,7 +78,11 @@ IMPORTANT GUIDELINES:
 1. You are a reflection partner, NOT a therapist, psychiatrist, or medical doctor. Never offer clinical diagnoses or medical advice.
 2. Use respectful, thoughtful phrasing such as "I noticed...", "You might be feeling...", "One pattern that stands out is...".
 3. Maintain high emotional intelligence, active listening, and calm warmth.
-4. Keep formatting clean, using Markdown headings, bullet points, and bold text where helpful for readability.`;
+4. Keep formatting clean, elegant, and readable. Use Markdown headings, bullet points, and bold text. When constructing action plans or structured advice, use distinctive section headings like:
+   - "### 🎯 Goal" for primary objectives
+   - "### 🚀 Phases" for milestones/phases
+   - "### ✅ Action Steps" for concrete tasks
+   - "### ✨ Next Step" for the immediate next action`;
 
   const contextAddendum = contextSummary
     ? `\n\nUSER'S AUTHORIZED CONTEXT FOR THIS SESSION:\n"""\n${contextSummary}\n"""\nUse this context respectfully to inform your reflections.`
@@ -86,20 +90,20 @@ IMPORTANT GUIDELINES:
 
   switch (mode) {
     case 'summarize':
-      return `${baseRules}\nMODE: SUMMARIZE.\nProvide a clear, structured summary of the user's reflection. Highlight: 1) Core Themes, 2) Key Emotional Currents, 3) Primary Decisions/Thoughts, and 4) Notable Takeaways.${contextAddendum}`;
+      return `${baseRules}\nMODE: SUMMARIZE.\nProvide a clear, structured summary of the user's reflection. Format cleanly with:\n- ### 💡 Core Themes\n- ### 🌿 Emotional Reflections\n- ### ✨ Key Takeaways${contextAddendum}`;
     case 'brainstorm':
-      return `${baseRules}\nMODE: BRAINSTORM.\nHelp the user expand possibilities! Offer 4-6 diverse, creative perspectives, unexpected angles, and potential avenues to explore without being overwhelming.${contextAddendum}`;
+      return `${baseRules}\nMODE: BRAINSTORM.\nHelp the user expand possibilities! Offer 4-6 diverse, creative perspectives, unexpected angles, and potential avenues to explore with clean headings and bullet points.${contextAddendum}`;
     case 'challenge':
-      return `${baseRules}\nMODE: CHALLENGE ME.\nAct as a kind, constructive devil's advocate. Gently question unexamined assumptions, highlight cognitive blind spots or binary thinking, and invite the user to look at situations from the opposite perspective.${contextAddendum}`;
+      return `${baseRules}\nMODE: CHALLENGE ME.\nAct as a kind, constructive devil's advocate. Gently question unexamined assumptions, highlight cognitive blind spots or binary thinking, and invite the user to look at situations from the opposite perspective.\nInclude: ### 🔍 Questions to Consider and ### 🛡️ Blind Spots to Examine.${contextAddendum}`;
     case 'action_plan':
-      return `${baseRules}\nMODE: ACTION PLAN.\nTranslate the user's thoughts and aspirations into a concrete, prioritized roadmap. Provide clear, bite-sized SMART steps with sequential milestones.${contextAddendum}`;
+      return `${baseRules}\nMODE: ACTION PLAN.\nTranslate the user's thoughts and aspirations into a concrete, prioritized roadmap.\nFormat with clear sections:\n### 🎯 Goal\n[Clear, empowering goal statement]\n\n### 🚀 Phases\n[Phase 1, Phase 2 roadmap breakdown]\n\n### ✅ Action Steps\n- [ ] Concrete step 1\n- [ ] Concrete step 2\n- [ ] Concrete step 3\n\n### ✨ Next Step\n[Single immediate, low-friction next action for today]${contextAddendum}`;
     case 'coach':
       return `${baseRules}\nMODE: COACH.\nUse the Socratic method. Rather than giving instant answers, ask 2-3 deep, clarifying questions that guide the user to unlock their own answers and self-realization.${contextAddendum}`;
     case 'find_patterns':
-      return `${baseRules}\nMODE: FIND PATTERNS.\nCarefully analyze recurring topics, emotional trajectories, recurring dilemmas, and personal growth markers across the user's writing.${contextAddendum}`;
+      return `${baseRules}\nMODE: FIND PATTERNS.\nCarefully analyze recurring topics, emotional trajectories, recurring dilemmas, and personal growth markers across the user's writing with structured takeaway cards.${contextAddendum}`;
     case 'reflect':
     default:
-      return `${baseRules}\nMODE: REFLECT.\nProvide thoughtful, mindful reflection on the user's words. Validate their feelings, synthesize underlying motivations, and offer gentle food for thought.${contextAddendum}`;
+      return `${baseRules}\nMODE: REFLECT.\nProvide thoughtful, mindful reflection on the user's words. Validate their feelings, synthesize underlying motivations, and offer gentle food for thought with clear spacing.${contextAddendum}`;
   }
 }
 
@@ -207,25 +211,43 @@ app.post('/api/gemini/action', async (req: Request, res: Response) => {
     let systemInstruction = `You are ReflectAI, an expert mindful personal reflection assistant. Output high-quality markdown response formatted for direct display.`;
 
     if (actionType === 'summarize') {
-      systemInstruction += `\nCreate a clear, concise summary with Key Takeaways and Core Insights.`;
+      systemInstruction += `\nCreate a clear, concise summary with:
+### 💡 Core Themes
+### 🌿 Key Takeaways`;
       prompt = `Please provide a thoughtful, elegant summary of this journal entry:\n\nTitle: ${entryTitle}\nContent:\n${entryContent}`;
     } else if (actionType === 'action_plan') {
-      systemInstruction += `\nExtract actionable goals and concrete subtasks from this reflection. Also provide a JSON block at the end with structure:
+      systemInstruction += `\nExtract actionable goals and concrete subtasks from this reflection.
+Structure your visible markdown with clean, beautiful sections:
+### 🎯 Goal
+[Clear statement of the primary goal]
+
+### 🚀 Phases
+[Phase 1, Phase 2 milestones]
+
+### ✅ Action Steps
+- [ ] Task 1
+- [ ] Task 2
+- [ ] Task 3
+
+### ✨ Next Step
+[Immediate next single focus for today]
+
+Also provide a machine-readable JSON block at the end with structure:
 \`\`\`json
 {
-  "goalTitle": "Primary goal",
+  "goalTitle": "Primary goal title",
   "tasks": ["Task 1", "Task 2", "Task 3"]
 }
 \`\`\``;
       prompt = `Convert the following personal reflection into a clear, structured action plan with immediate and secondary next steps:\n\nTitle: ${entryTitle}\nContent:\n${entryContent}`;
     } else if (actionType === 'find_themes') {
-      systemInstruction += `\nIdentify key psychological, lifestyle, career, or emotional themes. Also return 3-5 tags.`;
+      systemInstruction += `\nIdentify key psychological, lifestyle, career, or emotional themes with bullet points. Also return 3-5 tags.`;
       prompt = `Analyze this reflection and identify recurring themes, dominant emotions, and key values expressed:\n\nTitle: ${entryTitle}\nContent:\n${entryContent}`;
     } else if (actionType === 'brainstorm') {
-      systemInstruction += `\nBrainstorm fresh perspectives, creative possibilities, and paths forward.`;
+      systemInstruction += `\nBrainstorm fresh perspectives, creative possibilities, and paths forward with structured headings and bullet points.`;
       prompt = `Brainstorm creative ideas and alternate paths based on this reflection:\n\nTitle: ${entryTitle}\nContent:\n${entryContent}`;
     } else {
-      systemInstruction += `\nReflect empathetically on the entry.`;
+      systemInstruction += `\nReflect empathetically on the entry with thoughtful sections and paragraphs.`;
       prompt = `Please reflect deeply on what I wrote:\n\nTitle: ${entryTitle}\nContent:\n${entryContent}`;
     }
 

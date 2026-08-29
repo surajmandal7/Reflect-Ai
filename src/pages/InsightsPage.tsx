@@ -268,7 +268,7 @@ export const InsightsPage: React.FC = () => {
         </h2>
 
         {/* Weekly Review Card */}
-        {latestWeekly ? (
+        {latestWeekly && (
           <div className="p-6 sm:p-8 rounded-3xl bg-amber-50/70 dark:bg-stone-900/90 border border-amber-200/80 dark:border-stone-800 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-amber-200/60 dark:border-stone-800">
               <div className="flex items-center gap-3">
@@ -339,14 +339,89 @@ export const InsightsPage: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
+        )}
+        {/* Monthly Review Card */}
+        {latestMonthly && (
+          <div className="p-6 sm:p-8 rounded-3xl bg-amber-100/40 dark:bg-stone-900/90 border border-amber-300/70 dark:border-amber-900/50 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4 border-b border-amber-200/60 dark:border-stone-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-300/80 dark:bg-amber-900/60 flex items-center justify-center text-amber-950 dark:text-amber-200">
+                  <BrainCircuit className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">
+                    Monthly Synthesis & Macro Patterns
+                  </h3>
+                  <p className="text-xs text-stone-500 dark:text-stone-400">
+                    Synthesized from your past 30 days of reflections
+                  </p>
+                </div>
+              </div>
+
+              <span className="text-xs text-stone-400 font-mono">
+                {new Date(latestMonthly.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+
+            {/* Summary */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+                Monthly Journey Summary
+              </h4>
+              <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed">
+                {latestMonthly.summary}
+              </p>
+            </div>
+
+            {/* Recurring Themes */}
+            {latestMonthly.themes && latestMonthly.themes.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">
+                  Core Themes
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {latestMonthly.themes.map((t, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 rounded-xl bg-amber-200/60 dark:bg-amber-950 text-xs font-medium text-amber-900 dark:text-amber-200 border border-amber-300/70 dark:border-amber-900"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actionable Takeaways */}
+            {latestMonthly.actionableTakeaways && latestMonthly.actionableTakeaways.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400">
+                  Strategic Next Steps & Growth Horizons
+                </h4>
+                <div className="space-y-2">
+                  {latestMonthly.actionableTakeaways.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 flex items-start gap-2.5 text-xs text-stone-800 dark:text-stone-200 leading-relaxed"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!latestWeekly && !latestMonthly && (
           <div className="p-8 rounded-3xl bg-stone-100/60 dark:bg-stone-900/60 border border-dashed border-stone-300 dark:border-stone-800 text-center">
             <Sparkles className="w-6 h-6 mx-auto text-amber-500 mb-2" />
             <h3 className="font-serif text-base font-semibold text-stone-900 dark:text-stone-100">
-              No Weekly Review Generated Yet
+              No Periodic Reviews Generated Yet
             </h3>
             <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto">
-              Click the "Generate Weekly Review" button above to have Gemini synthesize your week.
+              Click "Generate Weekly Review" or "Monthly Synthesis" above to have Gemini synthesize your reflections into actionable patterns.
             </p>
           </div>
         )}

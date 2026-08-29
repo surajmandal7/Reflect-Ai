@@ -31,6 +31,7 @@ import {
   getJournalEntries,
 } from '../services/storageService';
 import { streamGeminiChat } from '../services/geminiService';
+import { GeminiResponseRenderer } from '../components/GeminiResponseRenderer';
 
 const AI_MODES: AIModeConfig[] = [
   {
@@ -279,7 +280,10 @@ export const ConversationsPage: React.FC = () => {
     const contextText = buildContextString();
 
     await streamGeminiChat({
-      messages: updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+      messages: updatedMessages.map((m) => ({
+        role: (m.role === 'model' ? 'model' : 'user') as 'model' | 'user',
+        content: m.content,
+      })),
       mode: selectedMode,
       contextText,
       signal: controller.signal,
@@ -617,10 +621,15 @@ export const ConversationsPage: React.FC = () => {
                             </button>
                           </div>
                         </div>
+                      ) : isUser ? (
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                      ) : msg.content ? (
+                        <GeminiResponseRenderer
+                          content={msg.content}
+                          isStreaming={isGenerating && index === messages.length - 1}
+                        />
                       ) : (
-                        msg.content || (
-                          <span className="italic text-stone-400">Gemini is reflecting...</span>
-                        )
+                        <span className="italic text-stone-400">Gemini is reflecting...</span>
                       )}
                     </div>
 

@@ -32,6 +32,7 @@ import {
   getJournalEntries,
 } from '../services/storageService';
 import { requestJournalAction } from '../services/geminiService';
+import { GeminiResponseRenderer } from '../components/GeminiResponseRenderer';
 
 interface JournalEditorPageProps {
   entryId?: string;
@@ -690,8 +691,8 @@ export const JournalEditorPage: React.FC<JournalEditorPageProps> = ({
               </button>
             </div>
 
-            <div className="prose prose-stone dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-              {aiResult}
+            <div className="pt-1">
+              <GeminiResponseRenderer content={aiResult} hideRawJson={true} />
             </div>
 
             {/* Extracted Goal Action Box */}
