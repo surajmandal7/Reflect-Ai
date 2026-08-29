@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // User Documents & Subcollections (Strict Tenant Isolation)
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Journal Entries subcollection
+      match /entries/{entryId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Conversations subcollection
+      match /conversations/{conversationId} {
+        allow read, write: if isOwner(userId);
+
+        // Messages subcollection
+        match /messages/{messageId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+
+      // Goals subcollection
+      match /goals/{goalId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Insights subcollection
+      match /insights/{insightId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Settings subcollection
+      match /settings/{settingId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}
+

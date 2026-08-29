@@ -1,0 +1,6 @@
+{
+  "name": "ReflectAI",
+  "description": "A private, intelligent AI Journal & Personal Reflection space with Gemini insights and user-isolated Firestore storage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
