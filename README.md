@@ -22,7 +22,7 @@ ReflectAI is a production-quality, privacy-first AI journaling and reflection we
 
 ### 1. System Architecture Diagram
 
-```mermaid
+
 graph TD
     subgraph Client ["Client Layer (Browser / React SPA)"]
         UI[ReflectAI UI & Pages]
@@ -67,7 +67,7 @@ graph TD
 
 ### 2. Multi-Turn Streaming AI Chat Flow
 
-```mermaid
+
 sequenceDiagram
     autonumber
     actor User as User (Browser)
