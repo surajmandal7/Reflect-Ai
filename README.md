@@ -25,17 +25,17 @@ ReflectAI is a production-quality, privacy-first AI journaling and reflection we
 ```mermaid
 graph TD
     subgraph Client ["Client Layer (Browser / React SPA)"]
-        UI[ReflectAI UI & Pages]
-        AuthCtx[Auth Context & State]
-        ThemeCtx[Theme Context: Light / Dark / System]
-        StorageSvc[Storage Service: Firestore + Local Cache]
-        GeminiClient[Gemini Client / SSE Consumer]
+        UI["ReflectAI UI & Pages"]
+        AuthCtx["Auth Context & State"]
+        ThemeCtx["Theme Context: Light / Dark / System"]
+        StorageSvc["Storage Service: Firestore + Local Cache"]
+        GeminiClient["Gemini Client / SSE Consumer"]
     end
 
     subgraph Backend ["Backend Proxy Layer (Express / Node.js on Port 3000)"]
-        Server[Express Server (server.ts)]
-        BodyGuard[Payload Deserialization & Null-Safe Guard]
-        GeminiProxy[Gemini AI Handler & Fallback Ladder]
+        Server["Express Server (server.ts)"]
+        BodyGuard["Payload Deserialization & Null-Safe Guard"]
+        GeminiProxy["Gemini AI Handler & Fallback Ladder"]
     end
 
     subgraph External ["Managed Cloud & AI Services"]
@@ -49,18 +49,18 @@ graph TD
     UI --> StorageSvc
     UI --> GeminiClient
 
-    AuthCtx -->|Popup / Redirect Token| FirebaseAuth
-    StorageSvc -->|Direct Read/Write with Rules| FirestoreDB
+    AuthCtx -->|"Popup / Redirect Token"| FirebaseAuth
+    StorageSvc -->|"Direct Read/Write with Rules"| FirestoreDB
 
-    GeminiClient -->|POST /api/gemini/reflect| Server
-    GeminiClient -->|POST SSE /api/gemini/chat| Server
-    GeminiClient -->|POST /api/gemini/insights| Server
-    GeminiClient -->|POST /api/gemini/prompt| Server
+    GeminiClient -->|"POST /api/gemini/reflect"| Server
+    GeminiClient -->|"POST SSE /api/gemini/chat"| Server
+    GeminiClient -->|"POST /api/gemini/insights"| Server
+    GeminiClient -->|"POST /api/gemini/prompt"| Server
 
     Server --> BodyGuard
     BodyGuard --> GeminiProxy
-    GeminiProxy -->|Secure Key Injection| SecretMgr
-    GeminiProxy -->|Resilient Fallback Ladder| GeminiAPI
+    GeminiProxy -->|"Secure Key Injection"| SecretMgr
+    GeminiProxy -->|"Resilient Fallback Ladder"| GeminiAPI
 ```
 
 ---
@@ -100,13 +100,13 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[User Action: Save Reflection] --> B[Sanitize Payload: Strip Undefined]
-    B --> C{Authenticated Session?}
-    C -- Yes --> D[Cloud Firestore: /users/{userId}/entries/{entryId}]
-    C -- No / Guest --> E[Local Storage Cache: reflect_ai_guest_entries]
-    D --> F[Firestore Security Rules Verification: request.auth.uid == userId]
-    F -- Approved --> G[Persisted to Cloud DB & Cache Synchronized]
-    F -- Denied --> H[Raise Error Toast with In-App Feedback]
+    A["User Action: Save Reflection"] --> B["Sanitize Payload: Strip Undefined"]
+    B --> C{"Authenticated Session?"}
+    C -->|Yes| D["Cloud Firestore: /users/{userId}/entries/{entryId}"]
+    C -->|No / Guest| E["Local Storage Cache: reflect_ai_guest_entries"]
+    D --> F["Firestore Security Rules Verification: request.auth.uid == userId"]
+    F -->|Approved| G["Persisted to Cloud DB & Cache Synchronized"]
+    F -->|Denied| H["Raise Error Toast with In-App Feedback"]
 ```
 
 ---
@@ -115,12 +115,12 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    E[Journal Reflection Entry] -->|Click 'Create Action Plan'| S[POST /api/gemini/reflect (mode: action_plan)]
-    S --> G[Gemini GenAI Analysis & SMART Task Breakdown]
-    G --> R[Formatted UI Card + Machine JSON Payload]
-    R --> V[User Reviews Extracted Goals & Tasks]
-    V -->|Click 'Save as Goal'| F[Persist to Firestore: /users/{userId}/goals/{goalId}]
-    F --> C[Interactive Progress Checklist in Goals View]
+    E["Journal Reflection Entry"] -->|"Click 'Create Action Plan'"| S["POST /api/gemini/reflect (mode: action_plan)"]
+    S --> G["Gemini GenAI Analysis & SMART Task Breakdown"]
+    G --> R["Formatted UI Card + Machine JSON Payload"]
+    R --> V["User Reviews Extracted Goals & Tasks"]
+    V -->|"Click 'Save as Goal'"| F["Persist to Firestore: /users/{userId}/goals/{goalId}"]
+    F --> C["Interactive Progress Checklist in Goals View"]
 ```
 
 ---
@@ -129,12 +129,12 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    H[User's Past Reflections & Mood History] -->|Trigger Synthesis| I[POST /api/gemini/insights]
-    I --> P[Express Server Aggregates Entry Titles, Dates, & Moods]
-    P --> M[Gemini 4-Tier Fallback Analysis]
-    M --> J[Structured Output: Summary, Themes, Blind Spots, Growth Actions]
-    J --> D[Persist to Firestore: /users/{userId}/insights/{insightId}]
-    D --> U[Render Interactive Radar, Theme Badges, & Action Cards]
+    H["User Past Reflections & Mood History"] -->|"Trigger Synthesis"| I["POST /api/gemini/insights"]
+    I --> P["Express Server Aggregates Entry Titles, Dates, & Moods"]
+    P --> M["Gemini 4-Tier Fallback Analysis"]
+    M --> J["Structured Output: Summary, Themes, Blind Spots, Growth Actions"]
+    J --> D["Persist to Firestore: /users/{userId}/insights/{insightId}"]
+    D --> U["Render Interactive Radar, Theme Badges, & Action Cards"]
 ```
 
 ---
