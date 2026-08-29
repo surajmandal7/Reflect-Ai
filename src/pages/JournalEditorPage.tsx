@@ -33,6 +33,7 @@ import {
 } from '../services/storageService';
 import { requestJournalAction } from '../services/geminiService';
 import { GeminiResponseRenderer } from '../components/GeminiResponseRenderer';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 interface JournalEditorPageProps {
   entryId?: string;
@@ -70,6 +71,7 @@ export const JournalEditorPage: React.FC<JournalEditorPageProps> = ({
   const [aiActionType, setAiActionType] = useState<string | null>(null);
   const [extractedGoal, setExtractedGoal] = useState<{ goalTitle: string; tasks: string[] } | null>(null);
   const [goalSaved, setGoalSaved] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // AI Context Selector state
   const [showContextOptions, setShowContextOptions] = useState(false);
@@ -235,12 +237,20 @@ export const JournalEditorPage: React.FC<JournalEditorPageProps> = ({
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
     if (!user) return;
-    if (window.confirm('Are you sure you want to delete this reflection? This cannot be undone.')) {
+    setShowDeleteModal(false);
+    try {
       await deleteJournalEntry(user.uid, activeId);
       showToast('Reflection deleted.', 'info');
       onNavigate('history');
+    } catch (err) {
+      console.error('Delete reflection error:', err);
+      showToast('Failed to delete reflection.', 'error');
     }
   };
 
@@ -734,6 +744,18 @@ export const JournalEditorPage: React.FC<JournalEditorPageProps> = ({
           </div>
         )}
       </div>
+
+      {/* Delete Reflection Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        title="Delete Reflection?"
+        description="This will permanently delete this reflection entry. This action cannot be undone."
+        confirmLabel="Delete Reflection"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      />
     </div>
   );
 };

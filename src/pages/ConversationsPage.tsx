@@ -32,6 +32,7 @@ import {
 } from '../services/storageService';
 import { streamGeminiChat } from '../services/geminiService';
 import { GeminiResponseRenderer } from '../components/GeminiResponseRenderer';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 const AI_MODES: AIModeConfig[] = [
   {
@@ -97,6 +98,8 @@ export const ConversationsPage: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Context Selection
   const [contextOptions, setContextOptions] = useState<AIContextOptions>({
@@ -168,10 +171,16 @@ export const ConversationsPage: React.FC = () => {
     setMessages([]);
   };
 
-  const handleDeleteConversation = async (convId: string, e: React.MouseEvent) => {
+  const handleDeleteClick = (convId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) return;
-    if (window.confirm('Delete this conversation thread?')) {
+    setDeleteTargetId(convId);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!user || !deleteTargetId) return;
+    const convId = deleteTargetId;
+    setDeleteTargetId(null);
+    try {
       await deleteConversation(user.uid, convId);
       const remaining = conversations.filter((c) => c.id !== convId);
       setConversations(remaining);
@@ -183,12 +192,16 @@ export const ConversationsPage: React.FC = () => {
         }
       }
       showToast('Conversation deleted.', 'info');
+    } catch (err) {
+      console.error('Failed to delete conversation:', err);
+      showToast('Failed to delete conversation.', 'error');
     }
   };
 
-  const handleClearChat = async () => {
+  const handleConfirmClearChat = async () => {
+    setShowClearConfirm(false);
     if (!user || !activeConversationId) return;
-    if (window.confirm('Clear all messages in this conversation?')) {
+    try {
       setMessages([]);
       const conv = conversations.find((c) => c.id === activeConversationId);
       if (conv) {
@@ -196,6 +209,9 @@ export const ConversationsPage: React.FC = () => {
         await saveConversation(user.uid, updated);
       }
       showToast('Conversation cleared.', 'info');
+    } catch (err) {
+      console.error('Failed to clear conversation:', err);
+      showToast('Failed to clear conversation.', 'error');
     }
   };
 
@@ -413,8 +429,16 @@ export const ConversationsPage: React.FC = () => {
                   </div>
 
                   <button
-                    onClick={(e) => handleDeleteConversation(conv.id, e)}
-                    className="p-1 opacity-0 group-hover:opacity-100 hover:text-rose-400 transition-opacity"
+                    id={`delete-conv-${conv.id}`}
+                    type="button"
+                    title="Delete Conversation"
+                    aria-label="Delete Conversation"
+                    onClick={(e) => handleDeleteClick(conv.id, e)}
+                    className={`p-1.5 rounded-lg transition-all shrink-0 hover:bg-rose-500/20 hover:text-rose-500 ${
+                      isActive
+                        ? 'opacity-80 hover:opacity-100 text-rose-300'
+                        : 'opacity-40 hover:opacity-100 text-stone-400 group-hover:opacity-80'
+                    }`}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -462,7 +486,8 @@ export const ConversationsPage: React.FC = () => {
 
             <div className="flex items-center gap-2">
               <button
-                onClick={handleClearChat}
+                id="clear-messages-btn"
+                onClick={() => setShowClearConfirm(true)}
                 className="px-2.5 py-1 text-xs text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200 rounded-lg hover:bg-stone-200/50 dark:hover:bg-stone-800 transition-colors"
               >
                 Clear Messages
@@ -761,6 +786,30 @@ export const ConversationsPage: React.FC = () => {
           </form>
         </div>
       </div>
+
+      {/* Delete Conversation Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteTargetId !== null}
+        title="Delete Conversation?"
+        description="This will permanently delete this conversation thread and its message history. This cannot be undone."
+        confirmLabel="Delete Thread"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTargetId(null)}
+      />
+
+      {/* Clear Chat Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showClearConfirm}
+        title="Clear All Messages?"
+        description="This will remove all messages in this active conversation while preserving the thread."
+        confirmLabel="Clear Messages"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        onConfirm={handleConfirmClearChat}
+        onCancel={() => setShowClearConfirm(false)}
+      />
     </div>
   );
 };

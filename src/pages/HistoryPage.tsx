@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { JournalEntry } from '../types';
 import { getJournalEntries, saveJournalEntry, deleteJournalEntry } from '../services/storageService';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 interface HistoryPageProps {
   initialSearch?: string;
@@ -41,6 +42,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'words'>('newest');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   const loadData = async () => {
     if (!user) return;
@@ -153,15 +155,24 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
     showToast(isCurrentlyArchived ? 'Restored selected entries' : 'Archived selected entries', 'info');
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (!user || selectedIds.length === 0) return;
-    if (window.confirm(`Delete ${selectedIds.length} selected reflection(s)?`)) {
+    setShowBulkDeleteModal(true);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (!user || selectedIds.length === 0) return;
+    setShowBulkDeleteModal(false);
+    try {
       for (const id of selectedIds) {
         await deleteJournalEntry(user.uid, id);
       }
       await loadData();
       setSelectedIds([]);
       showToast('Selected entries deleted', 'info');
+    } catch (err) {
+      console.error('Failed to bulk delete:', err);
+      showToast('Failed to delete entries.', 'error');
     }
   };
 
@@ -520,6 +531,18 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({
           })}
         </div>
       )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showBulkDeleteModal}
+        title="Delete Selected Reflections?"
+        description={`This will permanently delete ${selectedIds.length} selected reflection(s). This action cannot be undone.`}
+        confirmLabel={`Delete (${selectedIds.length})`}
+        cancelLabel="Cancel"
+        isDestructive={true}
+        onConfirm={handleConfirmBulkDelete}
+        onCancel={() => setShowBulkDeleteModal(false)}
+      />
     </div>
   );
 };

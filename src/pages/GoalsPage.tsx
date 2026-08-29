@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { Goal, GoalTask } from '../types';
 import { getGoals, saveGoal, deleteGoal } from '../services/storageService';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 interface GoalsPageProps {
   onNavigate: (tab: string, param?: string) => void;
@@ -31,6 +32,7 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate }) => {
 
   // Create Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newTasks, setNewTasks] = useState<string[]>(['']);
@@ -72,12 +74,21 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate }) => {
     showToast(allCompleted ? 'Goal completed! 🎉' : 'Task updated', 'success');
   };
 
-  const handleDeleteGoal = async (goalId: string) => {
-    if (!user) return;
-    if (window.confirm('Delete this goal and its tasks?')) {
-      await deleteGoal(user.uid, goalId);
-      setGoals((prev) => prev.filter((g) => g.id !== goalId));
+  const handleDeleteGoal = (goalId: string) => {
+    setDeleteGoalId(goalId);
+  };
+
+  const handleConfirmDeleteGoal = async () => {
+    if (!user || !deleteGoalId) return;
+    const gId = deleteGoalId;
+    setDeleteGoalId(null);
+    try {
+      await deleteGoal(user.uid, gId);
+      setGoals((prev) => prev.filter((g) => g.id !== gId));
       showToast('Goal deleted', 'info');
+    } catch (err) {
+      console.error('Failed to delete goal:', err);
+      showToast('Failed to delete goal.', 'error');
     }
   };
 
@@ -408,6 +419,18 @@ export const GoalsPage: React.FC<GoalsPageProps> = ({ onNavigate }) => {
           </div>
         </div>
       )}
+
+      {/* Delete Goal Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteGoalId !== null}
+        title="Delete Goal?"
+        description="This will permanently delete this goal and its associated tasks checklist."
+        confirmLabel="Delete Goal"
+        cancelLabel="Cancel"
+        isDestructive={true}
+        onConfirm={handleConfirmDeleteGoal}
+        onCancel={() => setDeleteGoalId(null)}
+      />
     </div>
   );
 };
