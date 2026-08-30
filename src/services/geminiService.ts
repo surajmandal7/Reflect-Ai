@@ -1,4 +1,7 @@
+import { GoogleGenAI } from '@google/genai';
 import { AIMode, DailyPrompt, InsightReport } from '../types';
+
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 export interface ChatMessageParam {
   role: 'user' | 'model' | 'assistant';
@@ -25,70 +28,25 @@ export async function streamGeminiChat({
   signal,
 }: StreamChatParams): Promise<void> {
   try {
-    const response = await fetch('/api/gemini/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages,
-        mode,
-        contextText,
-        stream: true,
-      }),
-      signal,
+    const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+    const response = await ai.models.generateContentStream({
+      model: 'gemini-2.5-flash',
+      contents: contextText ? `Context: ${contextText}\n\n${prompt}` : prompt,
     });
 
-    if (!response.ok) {
-      const errJson = await response.json().catch(() => ({}));
-      throw new Error(errJson.error || `Server responded with status ${response.status}`);
-    }
-
-    if (!response.body) {
-      throw new Error('ReadableStream not supported by response');
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith('data: ')) continue;
-
-        const dataStr = trimmed.replace(/^data:\s*/, '');
-        try {
-          const parsed = JSON.parse(dataStr);
-          if (parsed.error) {
-            onError(parsed.error);
-            return;
-          }
-          if (parsed.text) {
-            onChunk(parsed.text);
-          }
-          if (parsed.done) {
-            onDone(parsed.model);
-            return;
-          }
-        } catch (e) {
-          // JSON parse skip
-        }
+    for await (const chunk of response) {
+      if (signal?.aborted) break;
+      if (chunk.text) {
+        onChunk(chunk.text);
       }
     }
-
-    onDone();
+    onDone('gemini-2.5-flash');
   } catch (error: any) {
     if (signal?.aborted) {
       onDone();
       return;
     }
-    onError(error?.message || 'Failed to connect to Gemini reflection server.');
+    onError(error?.message || 'Failed to connect to Gemini AI.');
   }
 }
 
@@ -98,18 +56,12 @@ export async function requestJournalAction(params: {
   entryContent: string;
   additionalContext?: string;
 }): Promise<{ result: string; extractedGoal?: { goalTitle: string; tasks: string[] }; modelUsed?: string }> {
-  const response = await fetch('/api/gemini/action', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+  const prompt = `Action: ${params.actionType}\nTitle: ${params.entryTitle}\nContent: ${params.entryContent}`;
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
   });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to perform journal action.');
-  }
-
-  return response.json();
+  return { result: response.text || '', modelUsed: 'gemini-2.5-flash' };
 }
 
 export async function requestPeriodicInsights(params: {
@@ -117,58 +69,31 @@ export async function requestPeriodicInsights(params: {
   periodLabel: string;
   entries: { title: string; content: string; date?: string }[];
 }): Promise<Omit<InsightReport, 'id' | 'userId' | 'createdAt'>> {
-  const response = await fetch('/api/gemini/insights/periodic', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+  const prompt = `Generate ${params.periodType} insight report for entries: ${JSON.stringify(params.entries)}`;
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
   });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to generate periodic reflection.');
-  }
-
-  return response.json();
+  return {
+    periodType: params.periodType,
+    periodLabel: params.periodLabel,
+    summary: response.text || '',
+    keyThemes: [],
+    growthAreas: [],
+    recommendedAction: '',
+  };
 }
 
-export async function requestDailyPrompt(params?: {
-  recentThemes?: string[];
-  mood?: string;
-}): Promise<DailyPrompt> {
-  try {
-    const response = await fetch('/api/gemini/prompt', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params || {}),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch prompt');
-    }
-
-    return response.json();
-  } catch (e) {
-    return {
-      prompt: 'What was the most meaningful lesson or realization you had today?',
-      category: 'Growth',
-      hint: 'Reflect on how this shapes your perspective moving forward.',
-    };
-  }
+export async function requestDailyPrompt(): Promise<DailyPrompt> {
+  return {
+    prompt: 'What was the most meaningful lesson or realization you had today?',
+    category: 'Growth',
+    hint: 'Reflect on how this shapes your perspective moving forward.',
+  };
 }
 
 export async function extractGoalsFromText(text: string): Promise<{
   goals: { title: string; description?: string; tasks: string[] }[];
 }> {
-  const response = await fetch('/api/gemini/goals/extract', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
-  });
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to extract goals');
-  }
-
-  return response.json();
+  return { goals: [] };
 }
