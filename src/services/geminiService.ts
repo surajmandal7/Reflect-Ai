@@ -30,7 +30,7 @@ export async function streamGeminiChat({
   try {
     const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
     const response = await ai.models.generateContentStream({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: contextText ? `Context: ${contextText}\n\n${prompt}` : prompt,
     });
 
@@ -40,7 +40,7 @@ export async function streamGeminiChat({
         onChunk(chunk.text);
       }
     }
-    onDone('gemini-2.5-flash');
+    onDone('gemini-1.5-flash');
   } catch (error: any) {
     if (signal?.aborted) {
       onDone();
@@ -58,10 +58,10 @@ export async function requestJournalAction(params: {
 }): Promise<{ result: string; extractedGoal?: { goalTitle: string; tasks: string[] }; modelUsed?: string }> {
   const prompt = `Action: ${params.actionType}\nTitle: ${params.entryTitle}\nContent: ${params.entryContent}`;
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-1.5-flash',
     contents: prompt,
   });
-  return { result: response.text || '', modelUsed: 'gemini-2.5-flash' };
+  return { result: response.text || '', modelUsed: 'gemini-1.5-flash' };
 }
 
 export async function requestPeriodicInsights(params: {
@@ -71,7 +71,7 @@ export async function requestPeriodicInsights(params: {
 }): Promise<Omit<InsightReport, 'id' | 'userId' | 'createdAt'>> {
   const prompt = `Generate ${params.periodType} insight report for entries: ${JSON.stringify(params.entries)}`;
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-1.5-flash',
     contents: prompt,
   });
   return {
